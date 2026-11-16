@@ -1,0 +1,8 @@
+{
+  "appId": "com.flashattack.game",
+  "appName": "Flash Attack",
+  "webDir": "www",
+  "backgroundColor": "#1a1333",
+  "android": { "backgroundColor": "#1a1333" },
+  "ios": { "backgroundColor": "#1a1333", "contentInset": "never" }
+}

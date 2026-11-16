@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1333">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Flash Attack</title>
+<style>
+@font-face { font-family: 'Titan One'; src: url('fonts/titan-one.woff2') format('woff2'); font-display: block; }
+:root { --ink: #1a1333; --blue: #3aa8ff; --red: #ff4d6a; --gold: #ffd23f; --mint: #8dffb0; --violet: #7257f5;
+  --sat: env(safe-area-inset-top, 0px); --sar: env(safe-area-inset-right, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px); }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: #fff; font-family: 'Titan One', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif; touch-action: none; overscroll-behavior: none; }
+canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#probe { position: fixed; padding: var(--sat) var(--sar) var(--sab) var(--sal); visibility: hidden; pointer-events: none; }
+.hidden { display: none !important; }
+button { font-family: inherit; color: #fff; border: 0; cursor: pointer; touch-action: manipulation; }
+.stroke { text-shadow: -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink), 2px 2px 0 var(--ink), 0 4px 0 var(--ink), -2px 0 0 var(--ink), 2px 0 0 var(--ink), 0 -2px 0 var(--ink); }
+
+/* chunky button */
+.btn { position: relative; padding: 14px 30px 18px; font-size: clamp(18px, 4.2vh, 30px); border-radius: 18px; border: 4px solid var(--ink); background: var(--gold); box-shadow: inset 0 -7px 0 rgba(0,0,0,.22), inset 0 4px 0 rgba(255,255,255,.35), 0 6px 0 var(--ink); transition: transform .06s; letter-spacing: .5px; }
+.btn:active { transform: translateY(4px); box-shadow: inset 0 -4px 0 rgba(0,0,0,.22), inset 0 4px 0 rgba(255,255,255,.35), 0 2px 0 var(--ink); }
+.btn.blue { background: var(--blue); } .btn.red { background: var(--red); } .btn.violet { background: var(--violet); }
+.btn small { display: block; font-size: .5em; opacity: .95; margin-top: 2px; }
+
+/* in-game buttons */
+#btns { position: fixed; inset: 0; pointer-events: none; }
+#btns > * { pointer-events: auto; }
+.rb { position: absolute; width: clamp(50px, 13.5vh, 78px); height: clamp(50px, 13.5vh, 78px); border-radius: 50%; border: 4px solid var(--ink); font-size: clamp(9px, 2.5vh, 13px); background: var(--violet); box-shadow: inset 0 -6px 0 rgba(0,0,0,.25), inset 0 4px 0 rgba(255,255,255,.3), 0 4px 0 var(--ink); display: flex; align-items: center; justify-content: center; flex-direction: column; line-height: 1.05; opacity: .92; }
+.rb:active, .rb.down { transform: translateY(3px) scale(.96); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25), 0 1px 0 var(--ink); }
+.rb.off { filter: grayscale(.9); opacity: .45; }
+.rb b { font-weight: normal; font-size: 1.7em; }
+.rb .cnt { position: absolute; top: -6px; right: -6px; min-width: 24px; height: 24px; border-radius: 12px; background: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
+#b-reload { right: calc(14px + var(--sar)); top: 30%; background: #39b98a; }
+#b-swap   { right: calc(14px + var(--sar) + clamp(58px, 15.5vh, 90px)); top: 22%; background: #6c7cff; }
+#b-flash  { right: calc(14px + var(--sar)); top: calc(30% - clamp(58px, 15.5vh, 90px)); background: #e9f6ff; color: var(--ink); }
+#b-frag   { right: calc(14px + var(--sar) + clamp(58px, 15.5vh, 90px)); top: calc(22% - clamp(58px, 15.5vh, 90px)); background: #5fd068; }
+#b-flash, #b-frag { top: auto; }
+#b-flash { top: calc(30% + clamp(58px, 15.5vh, 90px)); }
+#b-frag  { top: calc(22% + clamp(58px, 15.5vh, 90px)); }
+#b-act { position: absolute; left: 50%; bottom: calc(22% + var(--sab)); transform: translateX(-50%); background: var(--gold); font-size: clamp(18px, 5vh, 28px); padding: 12px 34px 16px; animation: pulse .7s infinite alternate; }
+#b-act.down { background: #ff9d2e; }
+@keyframes pulse { to { filter: brightness(1.18); } }
+#b-buy { position: absolute; left: 50%; top: calc(74px + var(--sat)); transform: translateX(-50%); background: #39b98a; font-size: 18px; padding: 8px 22px 12px; border-radius: 14px; }
+#b-mute { position: absolute; right: calc(12px + var(--sar)); bottom: calc(10px + var(--sab)); width: 40px; height: 40px; border-radius: 12px; background: rgba(26,19,51,.6); font-size: 13px; border: 2px solid rgba(255,255,255,.4); }
+
+/* screens */
+.screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: calc(10px + var(--sat)) calc(16px + var(--sar)) calc(10px + var(--sab)) calc(16px + var(--sal)); }
+#menu { background:
+  radial-gradient(circle at 50% 30%, rgba(255,255,255,.16), transparent 55%),
+  repeating-linear-gradient(115deg, #7257f5 0 70px, #6a4ef0 70px 140px); gap: clamp(8px, 2.6vh, 22px); text-align: center; }
+#menu::before, #menu::after { content: ''; position: absolute; width: 60vh; height: 60vh; border-radius: 50%; opacity: .5; pointer-events: none; }
+#menu::before { background: var(--blue); left: -22vh; bottom: -26vh; border: 6px solid var(--ink); }
+#menu::after { background: var(--red); right: -22vh; top: -26vh; border: 6px solid var(--ink); }
+.logo { font-size: clamp(44px, 17vh, 120px); line-height: .86; transform: rotate(-4deg); color: var(--gold); letter-spacing: 1px; position: relative; z-index: 1;
+  text-shadow: -4px -4px 0 var(--ink), 4px -4px 0 var(--ink), -4px 4px 0 var(--ink), 4px 4px 0 var(--ink), 0 -4px 0 var(--ink), -4px 0 0 var(--ink), 4px 0 0 var(--ink), 0 10px 0 var(--ink), 4px 10px 0 var(--ink), -4px 10px 0 var(--ink); }
+.logo span { color: #fff; display: block; }
+.tag { font-size: clamp(12px, 3.2vh, 20px); z-index: 1; }
+.row { display: flex; gap: clamp(12px, 3vw, 28px); z-index: 1; flex-wrap: wrap; justify-content: center; }
+.how { z-index: 1; font-size: clamp(10px, 2.5vh, 14px); background: rgba(26,19,51,.55); padding: 8px 16px; border-radius: 12px; max-width: 640px; line-height: 1.5; font-family: system-ui, sans-serif; font-weight: 700; }
+
+#buy { background: rgba(26,19,51,.86); gap: clamp(6px, 1.6vh, 12px); }
+#buy h2 { margin: 0; font-size: clamp(18px, 5vh, 34px); color: var(--gold); }
+#buy .cash { color: var(--mint); }
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(6px, 1.4vh, 12px); width: min(760px, 100%); }
+.card { padding: clamp(5px, 1.4vh, 10px) 6px clamp(8px, 2vh, 14px); border-radius: 14px; border: 4px solid var(--ink); background: #5a43d6; box-shadow: inset 0 -6px 0 rgba(0,0,0,.25), inset 0 3px 0 rgba(255,255,255,.22), 0 4px 0 var(--ink); text-align: center; font-size: clamp(13px, 3.4vh, 20px); line-height: 1.15; }
+.card:active { transform: translateY(3px); }
+.card i { display: block; font-style: normal; font-size: .55em; opacity: .85; font-family: system-ui, sans-serif; font-weight: 800; }
+.card em { display: block; font-style: normal; color: var(--mint); font-size: .85em; margin-top: 2px; }
+.card.item { background: #2f8f7a; }
+.card.poor { filter: grayscale(.8) brightness(.7); } .card.poor em { color: #ff9aa8; }
+.card.own { background: #f0a400; } .card.own em { color: #fff; }
+.stats { display: flex; gap: 3px; justify-content: center; margin: 4px 0 1px; }
+.stats u { width: 22%; height: 5px; border-radius: 3px; background: rgba(26,19,51,.5); overflow: hidden; display: block; }
+.stats u s { display: block; height: 100%; background: #fff; }
+
+#end { background: rgba(26,19,51,.86); gap: clamp(8px, 2.4vh, 18px); }
+#end h1 { margin: 0; font-size: clamp(40px, 15vh, 96px); transform: rotate(-3deg); }
+#end .sc { font-size: clamp(20px, 6vh, 40px); }
+table { border-collapse: separate; border-spacing: 0 3px; font-size: clamp(11px, 2.8vh, 16px); }
+td, th { padding: 3px 14px; text-align: left; } td:nth-child(n+2), th:nth-child(n+2) { text-align: center; }
+tr.t0 td { background: rgba(58,168,255,.45); } tr.t1 td { background: rgba(255,77,106,.45); } tr.me td { color: var(--gold); }
+td:first-child { border-radius: 8px 0 0 8px; } td:last-child { border-radius: 0 8px 8px 0; }
+
+#rotate { background: var(--violet); z-index: 50; text-align: center; font-size: 26px; display: none; }
+@media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="probe"></div>
+
+<div id="btns" class="hidden">
+  <button id="b-buy" class="btn stroke hidden">BUY</button>
+  <button id="b-flash" class="rb" data-press="flash"><b>✦</b>FLASH<span class="cnt">0</span></button>
+  <button id="b-frag" class="rb stroke" data-press="frag"><b>●</b>FRAG<span class="cnt">0</span></button>
+  <button id="b-reload" class="rb stroke" data-press="reload"><b>↻</b>RELOAD</button>
+  <button id="b-swap" class="rb stroke" data-press="swap"><b>⇄</b>SWAP</button>
+  <button id="b-act" class="btn stroke hidden">PLANT</button>
+  <button id="b-mute">SFX</button>
+</div>
+
+<div id="buy" class="screen hidden">
+  <h2 class="stroke">GEAR UP &nbsp;<span class="cash" id="buy-cash">$800</span></h2>
+  <div class="cards" id="cards"></div>
+  <button class="btn blue stroke" id="buy-close">READY!</button>
+</div>
+
+<div id="menu" class="screen">
+  <div class="logo">FLASH<span>ATTACK</span></div>
+  <div class="tag stroke">4v4 · PLANT THE CHARGE · BLIND 'EM · FIRST TO 5</div>
+  <div class="row">
+    <button class="btn red stroke" id="play-atk">RAID<small>start attacking</small></button>
+    <button class="btn blue stroke" id="play-def">GUARD<small>start defending</small></button>
+  </div>
+  <div class="how">Left thumb moves · right thumb aims, drag further to fire · quick-tap right side for a snap shot<br>Keyboard: WASD + mouse · R reload · Q swap · F flash · G frag · E plant / defuse · B buy</div>
+</div>
+
+<div id="end" class="screen hidden">
+  <h1 class="stroke" id="end-title">VICTORY!</h1>
+  <div class="sc stroke" id="end-score"></div>
+  <table id="end-table"></table>
+  <button class="btn stroke" id="again">PLAY AGAIN</button>
+</div>
+
+<div id="rotate" class="screen stroke">↻<br>Rotate your phone<br>to play</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

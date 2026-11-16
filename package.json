@@ -1,0 +1,19 @@
+{
+  "name": "flash-attack",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Flash Attack — a chunky top-down tactical shooter for Android and iOS",
+  "scripts": {
+    "start": "npx serve www -l 5173",
+    "sync": "cap sync",
+    "android": "cap sync android && cap open android",
+    "ios": "cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/cli": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/ios": "^7.6.10"
+  }
+}
